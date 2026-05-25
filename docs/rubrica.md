@@ -4,6 +4,10 @@
 **Valor:** 15% de la nota final del curso
 **Escala interna de esta rúbrica:** 0–100 puntos → se convierte a la nota final del 15%.
 
+
+
+
+
 ---
 
 ## Resumen de criterios y pesos

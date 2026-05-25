@@ -176,13 +176,28 @@ src/
    npm run prisma:migrate -- --name init
    ```
 
-4. **Promover un usuario a admin** (manualmente en la DB):
+4. **Poblar la DB con datos de prueba (opcional pero recomendado)**
+
+   ```bash
+   npm run db:seed
+   ```
+
+   Crea **25 usuarios** (1 admin + 24 users) y **1000 tickets** distribuidos entre ellos para probar paginación, filtros y dashboard.
+
+   Credenciales:
+
+   - Admin → `admin@miboleta.com` / `Password123!`
+   - User → `demo@miboleta.com` / `Password123!`
+
+   > ⚠️ El seed **borra** los `tickets` y `users` existentes antes de poblar.
+
+5. **Promover un usuario a admin** (si no usaste el seed):
 
    ```sql
    UPDATE users SET role = 'admin' WHERE email = 'tu@email.com';
    ```
 
-5. **Arrancar en desarrollo**
+6. **Arrancar en desarrollo**
 
    ```bash
    npm run dev
@@ -434,3 +449,4 @@ El proyecto está preparado para desplegar en **Render** (ver [`render.yaml`](re
 | `npm run prisma:generate` | Regenera el cliente Prisma |
 | `npm run prisma:migrate` | `prisma migrate dev` (crea y aplica migración) |
 | `npm run prisma:deploy` | `prisma migrate deploy` (aplica migraciones existentes — producción) |
+| `npm run db:seed` | Pobla la DB con 25 usuarios y 1000 tickets de prueba |

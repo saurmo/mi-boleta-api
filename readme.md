@@ -438,6 +438,111 @@ El proyecto está preparado para desplegar en **Render** (ver [`render.yaml`](re
 - **Health Check:** `/api/v1`
 - Variables: `DATABASE_URL`, `JWT_SECRET`, `PORT`, `NODE_VERSION`.
 
+## 🚦 Rate Limiting
+
+La API protege todos sus endpoints con dos capas de límite de requests:
+
+| Limitador | Aplica a | Límite (producción) | Límite (demo) |
+|---|---|---|---|
+| `globalLimiter` | Toda la API `/api/v1/*` | 200 req / 15 min | 10 req / 10 seg |
+| `authLimiter` | `POST /auth/login` y `POST /auth/register` | 20 req / 15 min | 5 req / 10 seg |
+
+Cuando se supera el límite la API responde **429 Too Many Requests**:
+
+```json
+{ "error": "Demasiadas solicitudes. Máximo 5 por 10 segundos. Intenta más tarde." }
+```
+
+Cada respuesta incluye los headers estándar:
+
+```
+RateLimit-Limit: 5
+RateLimit-Remaining: 3
+RateLimit-Reset: 1748200810
+```
+
+### Demo en clase (DEMO_MODE)
+
+Para activar límites bajos que se pueden demostrar en segundos:
+
+```bash
+# 1. Activar modo demo en .env
+DEMO_MODE=true
+
+# 2. Reiniciar la API
+npm run dev
+```
+
+Con `DEMO_MODE=true` los límites bajan a **5 req / 10 seg** en auth y **10 req / 10 seg** en general — suficiente para disparar el 429 con unos pocos clics o con el script de prueba.
+
+### Script de prueba automatizado
+
+El script está escrito en **TypeScript** (`scripts/test-rate-limit.ts`) y usa `fetch` nativo de Node.js — no necesita dependencias extra.
+
+```bash
+# Terminal 1 — arranca la API en modo demo (límites bajos)
+npm run demo:rate-limit
+
+# Terminal 2 — corre el script de prueba
+npm run test:rate-limit
+
+# También puedes apuntarlo a la URL desplegada
+npx ts-node scripts/test-rate-limit.ts https://mi-api.render.com
+```
+
+El script ejecuta 4 demos en secuencia:
+
+| Demo | Qué hace |
+|---|---|
+| 1 | Envía 7 requests a `POST /auth/login` y muestra cuándo aparece el 429 |
+| 2 | Muestra el cuerpo JSON del error 429 |
+| 3 | Imprime los headers `RateLimit-*` de una respuesta normal |
+| 4 | Espera 10 seg (reset del contador), luego envía 12 requests a `GET /tickets` |
+
+**Salida esperada:**
+
+```
+══════════════════════════════════════════════════
+  Demo Rate Limiting — Mi Boleta API
+══════════════════════════════════════════════════
+  Base URL:  http://localhost:4000/api/v1
+
+▶ DEMO 1 — authLimiter: POST /auth/login
+  Límite demo: 5 req / 10 seg
+  Enviando 7 requests seguidas...
+
+  Request 1  →  ✓ 200 OK   (Restantes: 4)
+  Request 2  →  ✓ 200 OK   (Restantes: 3)
+  Request 3  →  ✓ 200 OK   (Restantes: 2)
+  Request 4  →  ✓ 200 OK   (Restantes: 1)
+  Request 5  →  ✓ 200 OK   (Restantes: 0)
+  Request 6  →  ✗ 429 TOO MANY REQUESTS  ← rate limit activado
+  Request 7  →  ✗ 429 TOO MANY REQUESTS  ← rate limit activado
+
+▶ DEMO 2 — Cuerpo del error 429
+  Status:   429
+  Body:     {"error":"Demasiadas solicitudes. Máximo 5 por 10 segundos..."}
+
+▶ DEMO 3 — Headers RateLimit-* en cada respuesta
+  RateLimit-Limit:     5
+  RateLimit-Remaining: 0
+  RateLimit-Reset:     1748200810
+
+  Esperando 10 segundos para que el contador se resetee...
+  ✓ Contador reseteado
+
+▶ DEMO 4 — globalLimiter: GET /tickets (requiere token)
+  ✓ Token obtenido
+  Enviando 12 requests a GET /tickets...
+
+  Request 1  →  ✓ 200 OK   (Restantes: 9)
+  ...
+  Request 11 →  ✗ 429 TOO MANY REQUESTS  ← rate limit activado
+  Request 12 →  ✗ 429 TOO MANY REQUESTS  ← rate limit activado
+```
+
+---
+
 ## 📜 Scripts disponibles
 
 | Script | Descripción |

@@ -3,12 +3,14 @@ import cors from 'cors';
 import { json } from 'express';
 import apiRouter from './interface/routes';
 import { errorHandler } from './interface/middlewares/errorMiddleware';
+import { globalLimiter } from './interface/middlewares/rateLimitMiddleware';
 import { DomainError } from './domain/errors/DomainError';
 
 const app = express();
 
 app.use(cors());
 app.use(json());
+app.use('/api/v1', globalLimiter);
 
 app.use('/api/v1', apiRouter);
 
